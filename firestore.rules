@@ -50,16 +50,16 @@ service cloud.firestore {
     }
 
     function isValidMessage(data) {
-      return data.keys().hasAll(['text', 'senderId', 'createdAt', 'senderName', 'isPremium', 'userId']) &&
-        data.text is string &&
-        data.senderId is string &&
-        data.senderName is string &&
-        data.userId == request.auth.uid &&
-        data.isPremium is bool;
+      return data.get('text', '') is string &&
+        data.get('senderId', '') is string &&
+        data.get('senderName', '') is string &&
+        data.get('userId', '') == request.auth.uid &&
+        data.get('chatPartnerId', '') is string &&
+        data.get('isPremium', false) is bool;
     }
 
     match /messages/{messageId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && resource.data.get('userId', '') == request.auth.uid;
       allow create: if isSignedIn() && isValidMessage(incoming());
       allow update, delete: if false;
     }

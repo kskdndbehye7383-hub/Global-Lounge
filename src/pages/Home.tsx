@@ -12,6 +12,8 @@ interface ChatMessage {
   text: string;
   senderId: string;
   senderName: string;
+  chatPartnerId: string; // The ID of the conversation partner
+  userId: string;        // The owner of this private view
   createdAt: number | null;
   isPremium?: boolean;
 }
@@ -26,6 +28,7 @@ export default function Home() {
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [friendEmail, setFriendEmail] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [selectedPartner, setSelectedPartner] = useState<string>('Global');
 
   const [friendsList, setFriendsList] = useState<{name: string, online: boolean, avatar: string}[]>([
     {name: 'Sarah', online: true, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150'},
@@ -66,11 +69,17 @@ export default function Home() {
       }
     });
 
-    const q = query(collection(db, 'messages'), where('userId', '==', user.uid));
+    const q = query(
+      collection(db, 'messages'), 
+      where('userId', '==', user.uid)
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs: ChatMessage[] = [];
       snapshot.forEach((doc) => {
-        msgs.push({ id: doc.id, ...doc.data() } as ChatMessage);
+        const data = doc.data() as ChatMessage;
+        if (data.chatPartnerId === selectedPartner) {
+          msgs.push({ id: doc.id, ...data });
+        }
       });
       // Sort in-memory to avoid composite index requirement
       msgs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
@@ -80,7 +89,7 @@ export default function Home() {
     });
 
     return () => unsubscribe();
-  }, [navigate]);
+  }, [navigate, selectedPartner]);
 
   const generateAutoReply = async (userMessage: string) => {
     if (!process.env.GEMINI_API_KEY) {
@@ -90,9 +99,12 @@ export default function Home() {
 
     setIsTyping(true);
     try {
-      // Pick a random online virtual profile to speak
-      const speakers = friendsList.filter(f => f.online);
-      const speaker = speakers[Math.floor(Math.random() * speakers.length)];
+      // Use the selected partner if it's a specific bot, otherwise pick random
+      const targetPartner = selectedPartner !== 'Global' 
+        ? (friendsList.find(f => f.name === selectedPartner) || friendsList.filter(f => f.online)[0])
+        : friendsList.filter(f => f.online)[Math.floor(Math.random() * friendsList.filter(f => f.online).length)];
+      
+      const speaker = targetPartner;
 
       let response;
       try {
@@ -121,6 +133,7 @@ export default function Home() {
           text: replyText,
           senderId: `bot_${speaker.name}`,
           senderName: speaker.name,
+          chatPartnerId: selectedPartner === 'Global' ? 'Global' : speaker.name,
           isPremium: true, // Bots are always premium
           userId: auth.currentUser.uid,
           createdAt: serverTimestamp()
@@ -170,6 +183,7 @@ export default function Home() {
         senderId: user.uid,
         senderName: senderName,
         userId: user.uid,
+        chatPartnerId: selectedPartner,
         isPremium: currentUserProfile?.isPremium || false,
         createdAt: serverTimestamp()
       });
@@ -330,19 +344,23 @@ export default function Home() {
               )}
 
               <div className="space-y-2">
-               {friendsList.map((f, i) => (
-                 <div key={i} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white/[0.03] border border-transparent hover:border-white/[0.05] transition-all cursor-pointer group">
-                    <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center relative shadow-xl border border-white/[0.05] group-hover:border-indigo-500/30 transition-all transform group-hover:scale-105">
-                      <img src={f.avatar} alt={f.name} className="w-full h-full object-cover" />
-                      <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-[#050505] rounded-full ${f.online ? 'bg-emerald-500' : 'bg-slate-700'}`}></div>
-                    </div>
-                    <div>
-                      <span className="text-sm font-bold text-slate-300 group-hover:text-white transition-colors">{f.name}</span>
-                      <p className="text-[10px] text-slate-500 group-hover:text-slate-400 transition-colors uppercase tracking-widest mt-0.5">{f.online ? 'Online' : 'Offline'}</p>
-                    </div>
-                 </div>
-               ))}
-             </div>
+                {friendsList.map((f, i) => (
+                  <div 
+                    key={i} 
+                    onClick={() => setSelectedPartner(f.name)}
+                    className={`flex items-center gap-4 p-3 rounded-2xl border transition-all cursor-pointer group ${selectedPartner === f.name ? 'bg-white/[0.08] border-white/[0.1]' : 'hover:bg-white/[0.03] border-transparent hover:border-white/[0.05]'}`}
+                  >
+                     <div className={`w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center relative shadow-xl border transition-all transform group-hover:scale-105 ${selectedPartner === f.name ? 'border-indigo-500' : 'border-white/[0.05]'}`}>
+                       <img src={f.avatar} alt={f.name} className="w-full h-full object-cover" />
+                       <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-[#050505] rounded-full ${f.online ? 'bg-emerald-500' : 'bg-slate-700'}`}></div>
+                     </div>
+                     <div>
+                       <span className={`text-sm font-bold transition-colors ${selectedPartner === f.name ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>{f.name}</span>
+                       <p className="text-[10px] text-slate-500 group-hover:text-slate-400 transition-colors uppercase tracking-widest mt-0.5">{f.online ? 'Online' : 'Offline'}</p>
+                     </div>
+                  </div>
+                ))}
+              </div>
            </div>
 
 
@@ -351,9 +369,12 @@ export default function Home() {
            </div>
 
            {/* Featured Room Item */}
-           <div className="flex items-center gap-4 p-4 rounded-[1.5rem] bg-gradient-to-br from-indigo-500/5 to-rose-500/5 border border-white/[0.05] transition-all cursor-pointer group relative overflow-hidden hover:border-white/[0.1]">
-              <div className="w-12 h-12 rounded-xl bg-slate-900 border border-white/5 flex items-center justify-center relative shadow-2xl transform transition-transform group-hover:scale-110">
-                <Flame className="w-6 h-6 text-rose-500 fill-rose-500/10" />
+           <div 
+             onClick={() => setSelectedPartner('Global')}
+             className={`flex items-center gap-4 p-4 rounded-[1.5rem] border transition-all cursor-pointer group relative overflow-hidden ${selectedPartner === 'Global' ? 'bg-white/[0.08] border-white/[0.1]' : 'bg-gradient-to-br from-indigo-500/5 to-rose-500/5 border-white/[0.05] hover:border-white/[0.1]'}`}
+           >
+              <div className={`w-12 h-12 rounded-xl bg-slate-900 border flex items-center justify-center relative shadow-2xl transform transition-transform group-hover:scale-110 ${selectedPartner === 'Global' ? 'border-rose-500' : 'border-white/5'}`}>
+                <Flame className={`w-6 h-6 ${selectedPartner === 'Global' ? 'text-rose-500 fill-rose-500/20' : 'text-rose-500/50'}`} />
                 <div className="absolute top-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-[#050505] rounded-full"></div>
               </div>
               <div className="flex-1 min-w-0">
@@ -387,8 +408,23 @@ export default function Home() {
              </div>
              <div>
                <h1 className="text-xl font-serif italic text-white flex items-center gap-3">
-                 <Flame className="w-6 h-6 text-rose-500" /> 
-                 Global Lounge
+                 {selectedPartner === 'Global' ? (
+                   <>
+                     <Flame className="w-6 h-6 text-rose-500" /> 
+                     Global Lounge
+                   </>
+                 ) : (
+                   <>
+                     <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/10">
+                       <img 
+                         src={friendsList.find(f => f.name === selectedPartner)?.avatar} 
+                         className="w-full h-full object-cover" 
+                         alt="" 
+                       />
+                     </div>
+                     {selectedPartner}
+                   </>
+                 )}
                </h1>
                <div className="flex items-center gap-2 mt-1">
                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
