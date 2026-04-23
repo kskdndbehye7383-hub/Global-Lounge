@@ -1,0 +1,6 @@
+{
+  "name": "Chat & Dating Platform",
+  "description": "A desktop-focused web application for real-time chat and dating. Features email registration and login.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == '890305@wty.com';
+    }
+
+    function isVerifiedEmail() {
+      return true;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'createdAt']) &&
+        data.email is string && data.email.size() <= 200 &&
+        data.createdAt == request.time &&
+        data.get('displayName', '') is string && data.get('displayName', '').size() <= 100 &&
+        data.get('bio', '') is string && data.get('bio', '').size() <= 1000 &&
+        data.get('isPremium', false) is bool;
+    }
+    
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
+      allow update: if isSignedIn() && request.auth.uid == userId &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'bio', 'isPremium']) &&
+        incoming().get('displayName', '') is string && incoming().get('displayName', '').size() <= 100 &&
+        incoming().get('bio', '') is string && incoming().get('bio', '').size() <= 1000 &&
+        incoming().get('isPremium', false) is bool;
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['text', 'senderId', 'createdAt', 'senderName', 'isPremium', 'userId']) &&
+        data.text is string &&
+        data.senderId is string &&
+        data.senderName is string &&
+        data.userId == request.auth.uid &&
+        data.isPremium is bool;
+    }
+
+    match /messages/{messageId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidMessage(incoming());
+      allow update, delete: if false;
+    }
+
+    // Secure backend collection for activation codes
+    match /activation_codes/{codeId} {
+      allow read, list, delete: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}
