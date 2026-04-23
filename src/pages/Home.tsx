@@ -18,7 +18,18 @@ interface ChatMessage {
   isPremium?: boolean;
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Safely get the API Key
+const getApiKey = () => {
+  try {
+    // Priority: Vite env variable (for Vercel/external), then process.env (for Studio)
+    return import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '');
+  } catch {
+    return '';
+  }
+};
+
+const apiKey = getApiKey();
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -92,8 +103,8 @@ export default function Home() {
   }, [navigate, selectedPartner]);
 
   const generateAutoReply = async (userMessage: string) => {
-    if (!process.env.GEMINI_API_KEY) {
-      console.error("Auto-reply error: GEMINI_API_KEY is not defined");
+    if (!ai) {
+      console.error("Auto-reply error: AI module not initialized");
       return;
     }
 
@@ -106,28 +117,19 @@ export default function Home() {
       
       const speaker = targetPartner;
 
-      let response;
+      let replyText = '';
       try {
-        response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-          config: {
-            systemInstruction: `You are ${speaker.name}, a friendly user on a dating/social app. Reply to the user in a short, engaging, and casual way. Be conversational and slightly flirty or just very friendly. Keep it under 20 words.`
-          }
-        });
-      } catch (innerError) {
-        console.warn("Primary model failed, attempting fallback:", innerError);
-        // Fallback to gemini-1.5-flash-latest if gemini-3 fails
-        response = await ai.models.generateContent({
+        const model = ai.getGenerativeModel({ 
           model: "gemini-1.5-flash-latest",
-          contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-          config: {
-            systemInstruction: `You are ${speaker.name}, a friendly user on a dating/social app. Reply to the user in a short, engaging, and casual way. Keep it under 20 words.`
-          }
+          systemInstruction: `You are ${speaker.name}, a friendly user on a dating/social app. Reply to the user in a short, engaging, and casual way. Be conversational and slightly flirty or just very friendly. Keep it under 20 words.`
         });
+        
+        const result = await model.generateContent(userMessage);
+        replyText = result.response.text();
+      } catch (innerError) {
+        console.warn("AI Reply failed:", innerError);
       }
 
-      const replyText = response.text;
       if (replyText && auth.currentUser) {
         await addDoc(collection(db, 'messages'), {
           text: replyText,
