@@ -81,6 +81,11 @@ export default function Membership() {
 
         setSuccessMsg("Access Crystalized: Your Elite membership is now active.");
         
+        // Add this line to your success/thank-you page logic on Vercel
+        if (window.parent) {
+            window.parent.postMessage("ACCESS CRYSTALIZED: YOUR ELITE MEMBERSHIP IS NOWACTIVE.", "*");
+        }
+        
         // Auto redirect after a short delay on success
         setTimeout(() => {
           navigate('/');
