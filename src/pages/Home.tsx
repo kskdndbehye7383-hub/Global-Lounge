@@ -322,7 +322,7 @@ export default function Home() {
                       placeholder="Enter identity email..."
                     />
                     <button type="submit" className="w-full py-4 bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-400 transition-all shadow-lg shadow-indigo-500/20">
-                      Sync Connection
+                      Add Connection
                     </button>
                   </form>
                 </div>
