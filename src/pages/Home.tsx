@@ -5,7 +5,6 @@ import { auth, db, handleFirestoreError } from '../lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, addDoc, serverTimestamp, getDoc, doc, updateDoc, where } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { Send, LogOut, Flame, User, Search, Settings, ArrowRight, Crown, UserPlus, X, Heart, Shield, Bell, Moon } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
 
 interface ChatMessage {
   id: string;
@@ -17,19 +16,6 @@ interface ChatMessage {
   createdAt: number | null;
   isPremium?: boolean;
 }
-
-// Safely get the API Key
-const getApiKey = () => {
-  try {
-    // Priority: Vite env variable (for Vercel/external), then process.env (for Studio)
-    return import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '');
-  } catch {
-    return '';
-  }
-};
-
-const apiKey = getApiKey();
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -57,7 +43,77 @@ export default function Home() {
     {name: 'Isabella', online: true, avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=150'},
     {name: 'Ethan', online: false, avatar: 'https://images.unsplash.com/photo-1506863530036-1efeddceb993?auto=format&fit=crop&q=80&w=150'},
     {name: 'Mona', online: true, avatar: 'https://images.unsplash.com/photo-1516239482977-b550ba7253f2?auto=format&fit=crop&q=80&w=150'},
-    {name: 'Alex', online: true, avatar: 'https://images.unsplash.com/photo-1504257432389-52343af06ae3?auto=format&fit=crop&q=80&w=150'}
+    {name: 'Alex', online: true, avatar: 'https://images.unsplash.com/photo-1504257432389-52343af06ae3?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Zoe', online: true, avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Lucas', online: true, avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Amelia', online: true, avatar: 'https://images.unsplash.com/photo-1531746020798-e795c5399c5c?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Henry', online: false, avatar: 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Harper', online: true, avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Alexander', online: false, avatar: 'https://images.unsplash.com/photo-1506863530036-1efeddceb993?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Evelyn', online: true, avatar: 'https://images.unsplash.com/photo-1516239482977-b550ba7253f2?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Logan', online: true, avatar: 'https://images.unsplash.com/photo-1504257432389-52343af06ae3?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Abigail', online: true, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Michael', online: false, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Ella', online: true, avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Elijah', online: false, avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Avery', online: true, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Matthew', online: false, avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Scarlett', online: true, avatar: 'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Jackson', online: false, avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Grace', online: true, avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Sebastian', online: false, avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Chloe', online: true, avatar: 'https://images.unsplash.com/photo-1531746020798-e795c5399c5c?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Jack', online: false, avatar: 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Aria', online: true, avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Luke', online: false, avatar: 'https://images.unsplash.com/photo-1506863530036-1efeddceb993?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Riley', online: true, avatar: 'https://images.unsplash.com/photo-1516239482977-b550ba7253f2?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Owen', online: true, avatar: 'https://images.unsplash.com/photo-1504257432389-52343af06ae3?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Nora', online: true, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Gabriel', online: false, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Lily', online: true, avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Carter', online: false, avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Eleanor', online: true, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Isaac', online: false, avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Hannah', online: true, avatar: 'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Jayden', online: false, avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Lillian', online: true, avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Dylan', online: false, avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Addison', online: true, avatar: 'https://images.unsplash.com/photo-1531746020798-e795c5399c5c?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Julian', online: true, avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Stella', online: false, avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Levi', online: true, avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Victoria', online: true, avatar: 'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Mateo', online: false, avatar: 'https://images.unsplash.com/photo-1463453091185-61582044d556?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Natalie', online: true, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Ryan', online: true, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Lucy', online: false, avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Jaxon', online: true, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Hazel', online: true, avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Lincoln', online: false, avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Brooklyn', online: true, avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Joshua', online: true, avatar: 'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Audrey', online: false, avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Christopher', online: true, avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Bella', online: true, avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Andrew', online: false, avatar: 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Claire', online: true, avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Theodore', online: true, avatar: 'https://images.unsplash.com/photo-1506863530036-1efeddceb993?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Skylar', online: false, avatar: 'https://images.unsplash.com/photo-1516239482977-b550ba7253f2?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Caleb', online: true, avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Penelope', online: true, avatar: 'https://images.unsplash.com/photo-1531746020798-e795c5399c5c?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Miles', online: false, avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Savannah', online: true, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Oliver', online: true, avatar: 'https://images.unsplash.com/photo-1463453091185-61582044d556?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Anna', online: false, avatar: 'https://images.unsplash.com/photo-1504257432389-52343af06ae3?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Wyatt', online: true, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Aaliyah', online: true, avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Ezekiel', online: false, avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Caroline', online: true, avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Grayson', online: true, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Maya', online: false, avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Ezra', online: true, avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Luna', online: true, avatar: 'https://images.unsplash.com/photo-1531746020798-e795c5399c5c?auto=format&fit=crop&q=80&w=150'},
+    {name: 'Ian', online: false, avatar: 'https://images.unsplash.com/photo-1506863530036-1efeddceb993?auto=format&fit=crop&q=80&w=150'}
   ]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -103,11 +159,6 @@ export default function Home() {
   }, [navigate, selectedPartner]);
 
   const generateAutoReply = async (userMessage: string) => {
-    if (!ai) {
-      console.error("Auto-reply error: AI module not initialized");
-      return;
-    }
-
     setIsTyping(true);
     try {
       // Use the selected partner if it's a specific bot, otherwise pick random
@@ -117,18 +168,29 @@ export default function Home() {
       
       const speaker = targetPartner;
 
-      let replyText = '';
-      try {
-        const model = ai.getGenerativeModel({ 
-          model: "gemini-1.5-flash-latest",
-          systemInstruction: `You are ${speaker.name}, a friendly user on a dating/social app. Reply to the user in a short, engaging, and casual way. Be conversational and slightly flirty or just very friendly. Keep it under 20 words.`
-        });
-        
-        const result = await model.generateContent(userMessage);
-        replyText = result.response.text();
-      } catch (innerError) {
-        console.warn("AI Reply failed:", innerError);
-      }
+      // Simple hardcoded responses
+      const defaultReplies = [
+        "Hey there! 😄",
+        "That's so interesting! Tell me more?",
+        "Haha exactly! 💯",
+        "How's your day going?",
+        "I was just thinking the same thing.",
+        "Oh wow! Really?",
+        "Sounds like a plan! ✨",
+        "Aww that's sweet 🥺",
+        "I'm totally with you on that.",
+        "Wait, what? No way! 😂",
+        "Let's chat more about this!",
+        "You're funny! I like that.",
+        "Hmm, I need to think about that one...",
+        "Always a pleasure chatting with you!",
+        "Got any fun plans for later?",
+        "That made me smile 😊",
+        "I completely agree!",
+        "Tell me a secret? 😉"
+      ];
+      
+      const replyText = defaultReplies[Math.floor(Math.random() * defaultReplies.length)];
 
       if (replyText && auth.currentUser) {
         await addDoc(collection(db, 'messages'), {
